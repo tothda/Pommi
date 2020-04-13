@@ -4,6 +4,12 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>
+#include <QSystemTrayIcon>
+#include <QMenu>
+#include <QApplication>
+#include <QTimer>
+#include <QFileSystemModel>
+#include <QQmlContext>
 
 class Task: public QObject {
     Q_OBJECT
@@ -88,12 +94,162 @@ private:
     QSqlDatabase m_db;
 };
 
+struct Task2 {
+    int id;
+    QString title;
+    bool is_done;
+};
+
+class TaskListModel: public QAbstractListModel {
+public:
+    explicit TaskListModel(QObject* parent):
+        QAbstractListModel(parent),
+        task_list(new QVector<Task2>)
+    {
+        task_list->append(Task2{1, "Define List Model", false});
+        task_list->append(Task2{2, "Show list in QML", false});
+        task_list->append(Task2{3, "Edit list item", false});
+    }
+
+
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override {
+        int row = index.row();
+        auto task = task_list->at(row);
+        switch (role) {
+            case Roles::ID:
+                return QVariant(task.id);
+            case Roles::TITLE:
+                return QVariant(task.title);
+            case Roles::IS_DONE:
+                return QVariant(task.is_done);
+            default:
+                return QVariant();
+        }
+    }
+
+    QModelIndex parent(const QModelIndex &child) const override {
+        return {};
+    }
+
+    int rowCount(const QModelIndex &parent) const override {
+        return task_list->size();
+    }
+
+    int columnCount(const QModelIndex &parent) const override {
+        return 1;
+    }
+
+    enum Roles {
+        ID = Qt::UserRole,
+        TITLE,
+        IS_DONE
+    };
+
+    QHash<int, QByteArray> roleNames() const override {
+        QHash<int, QByteArray> roles;
+        roles[Roles::ID] = "id";
+        roles[Roles::TITLE] = "title";
+        roles[Roles::IS_DONE] = "is_done";
+        return roles;
+    }
+
+    bool setData(const QModelIndex &index, const QVariant &value, int role) override {
+        qDebug() << "Data changed" <<index.row() << value.toString();
+        int row = index.row();
+        auto task = task_list->at(row);
+
+        switch (role) {
+            case Roles::TITLE:
+                task.title = value.toString();
+                break;
+            case Roles::IS_DONE:
+                task.is_done = value.toBool();
+                break;
+            default:
+                return false;
+        }
+        task_list->replace(row, task);
+        emit dataChanged(index, index, {role});
+        return true;
+    }
+
+private:
+    QVector<Task2>* task_list;
+};
+
+
+QSystemTrayIcon* create_system_tray_icon(QObject* parent) {
+    qDebug() << "System Tray available : " << QSystemTrayIcon::isSystemTrayAvailable();
+    qDebug() << "System Tray supports messages: " << QSystemTrayIcon::supportsMessages();
+    auto system_tray_icon = new QSystemTrayIcon(parent);
+    QIcon icon(":/tray_icon.png");
+    system_tray_icon->setToolTip("This is a very funny tooltip :)");
+//    qDebug() << "Icon size: " << icon.actualSize(QSize(32,32));
+    system_tray_icon->setIcon(icon);
+
+    // Create menu
+    auto menu = new QMenu();
+    auto action = new QAction();
+    action->setText("Hello");
+    menu->addAction(action);
+    system_tray_icon->setContextMenu(menu);
+    system_tray_icon->show();
+    system_tray_icon->showMessage("Hello","Hallo");
+    return system_tray_icon;
+}
+
+void set_up_timed_messages(QSystemTrayIcon* tray_icon) {
+    auto timer = new QTimer(tray_icon);
+    bool visible = true;
+    QObject::connect(timer, &QTimer::timeout, [=](){
+        qDebug() << "Timer triggered!" << tray_icon;
+        tray_icon->showMessage("Message from timer!","Time to relax!",
+                QSystemTrayIcon::MessageIcon::Warning, 10000);
+        // Show/hide tray icon. Works!
+        // tray_icon->setVisible(!tray_icon->isVisible());
+    });
+    timer->start(2000);
+}
+
+void test_model_view_architecture() {
+    auto model = new QFileSystemModel;
+    QObject::connect(model, &QFileSystemModel::directoryLoaded, [model](const QString &directory) {
+        QModelIndex parentDirIndex = model->index(directory);
+        int numRows = model->rowCount(parentDirIndex);
+        int numColumns = model->columnCount(parentDirIndex);
+        auto roles = model->roleNames();
+        qDebug() << "numRows" << numRows << ", numColumns" << numColumns;
+        qDebug() << "Roles:";
+
+        for (int i = 0; i < roles.size(); i++) {
+            auto name = roles.value(i);
+            qDebug() << " - " << name;
+        }
+
+        for (int row = 0; row < numRows; ++row) {
+            QModelIndex childIndex = model->index(row, 0, parentDirIndex);
+            QString text = model->data(childIndex, Qt::DisplayRole).toString();
+            QVariant d = model->data(childIndex, roles.key("fileIcon"));
+            qDebug() << row << text << d;
+        }
+    });
+    model->setRootPath(QDir::currentPath());
+}
 
 int main(int argc, char *argv[])
 {
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
     QQmlApplicationEngine engine;
+
+    QSystemTrayIcon* tray_icon = create_system_tray_icon(&app);
+
+    // This does not work for some reason...
+    //set_up_timed_messages(tray_icon);
+
+    // test_model_view_architecture();
+    TaskListModel task_list_model(&app);
+    engine.rootContext()->setContextProperty("task_list", &task_list_model);
 
     const QUrl url(QStringLiteral("qrc:/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

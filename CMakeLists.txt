@@ -29,7 +29,7 @@ set(CMAKE_PREFIX_PATH /Users/david/Qt/5.14.2/clang_64/lib/cmake)
 # /Users/david/Qt/5.14.2/clang_64/lib/cmake/Qt5/Qt5Config.cmake
 #set(CMAKE_MODULES_PATH /Users/david/Qt/5.14.2/clang_64/lib/cmake)
 
-find_package(Qt5 COMPONENTS Core Quick Sql REQUIRED)
+find_package(Qt5 COMPONENTS Core Quick Sql Widgets REQUIRED)
 
 if(ANDROID)
     add_library(Pomodoro SHARED
@@ -46,4 +46,4 @@ endif()
 target_compile_definitions(Pomodoro
   PRIVATE $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:QT_QML_DEBUG>)
 target_link_libraries(Pomodoro
-  PRIVATE Qt5::Core Qt5::Quick Qt5::Sql)
+  PRIVATE Qt5::Core Qt5::Quick Qt5::Sql Qt5::Widgets)
