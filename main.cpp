@@ -106,9 +106,9 @@ public:
         QAbstractListModel(parent),
         task_list(new QVector<Task2>)
     {
-        task_list->append(Task2{1, "Define List Model", false});
-        task_list->append(Task2{2, "Show list in QML", false});
-        task_list->append(Task2{3, "Edit list item", false});
+        for (int i=0; i < 100; i++) {
+            task_list->append(Task2{1, QString("Task %1").arg(i), false});
+        }
     }
 
 
@@ -226,11 +226,17 @@ void test_model_view_architecture() {
             qDebug() << " - " << name;
         }
 
-        for (int row = 0; row < numRows; ++row) {
-            QModelIndex childIndex = model->index(row, 0, parentDirIndex);
-            QString text = model->data(childIndex, Qt::DisplayRole).toString();
-            QVariant d = model->data(childIndex, roles.key("fileIcon"));
-            qDebug() << row << text << d;
+        for (int row = 0; row < numRows; row++) {
+            for (int col = 0; col < numColumns; col++) {
+                QModelIndex childIndex = model->index(row, col, parentDirIndex);
+                QString text = model->data(childIndex, Qt::DisplayRole).toString();
+                qDebug() << row << "," << col << "=" << text;
+            }
+
+            // QModelIndex childIndex = model->index(row, 0, parentDirIndex);
+            // QString text = model->data(childIndex, Qt::DisplayRole).toString();
+            // QVariant d = model->data(childIndex, roles.key("fileIcon"));
+            // qDebug() << row << text << d;
         }
     });
     model->setRootPath(QDir::currentPath());
@@ -247,7 +253,7 @@ int main(int argc, char *argv[])
     // This does not work for some reason...
     //set_up_timed_messages(tray_icon);
 
-    // test_model_view_architecture();
+    test_model_view_architecture();
     TaskListModel task_list_model(&app);
     engine.rootContext()->setContextProperty("task_list", &task_list_model);
 

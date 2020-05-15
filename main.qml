@@ -67,30 +67,37 @@ Window {
     }
 
 
-    ListView {
-        x: 200
-        y: 24
-        width: 110
-        height: 160
-        delegate: Text {
-            text: "index: " + index + " title: " + title;
-        }
-        model: task_list
-    }
 
 
     ListView {
-        x: 400
-        y: 24
-        width: 110
-        height: 160
-        delegate: TextEdit {
+        anchors.leftMargin: 200
+        anchors.fill: parent
+        spacing: 10
+        //        interactive: false
+
+        delegate:
+            TextInput {
             text: title
             readOnly: false
-            selectByKeyboard: true
             selectByMouse: true
             onEditingFinished: title = text
+
+            Rectangle {
+                anchors.fill: parent
+                color: "yellow"
+                opacity: 0.1
+            }
         }
+
         model: task_list
+
     }
+
+
 }
+
+/*##^##
+Designer {
+    D{i:8;anchors_x:200}
+}
+##^##*/
