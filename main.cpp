@@ -253,7 +253,7 @@ int main(int argc, char *argv[])
     // This does not work for some reason...
     //set_up_timed_messages(tray_icon);
 
-    test_model_view_architecture();
+//    test_model_view_architecture();
     TaskListModel task_list_model(&app);
     engine.rootContext()->setContextProperty("task_list", &task_list_model);
 

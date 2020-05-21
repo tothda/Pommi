@@ -3,5 +3,7 @@
         <file>main.qml</file>
         <file>MyCheckbox.qml</file>
         <file>tray_icon.png</file>
+        <file>Window1.qml</file>
+        <file>Window2.qml</file>
     </qresource>
 </RCC>
